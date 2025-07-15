@@ -1,12 +1,30 @@
 # 海关算子
+By [@yhz1651](https://github.com/yhz1651)
+
+### 项目简介
+海关算子用于从指标系统的单维原始指标中提取多维特征，通过预设运算规则对申报信息（如重量、价格等核心指标）进行结构化分析，最终输出包含分步计算逻辑的多维特征结构，以及由大模型生成的语义化风险描述。
+
+该工具可将分散的单维数据转化为可解释的风险判断依据，清晰呈现风险触发的计算链路与逻辑关系，为海关等场景的风险核查提供直观、可追溯的决策支持。
 
 ### 环境配置
 ```bash
+# 创建默认环境
 conda env create -f environment.yml
-conda env create -f environment.yml -n new_env_name # 指定环境名称
-conda env create -f environment_cross_platform.yml # 跨平台环境配置
-conda env create -f environment_cross_platform.yml -n new_env_name # 跨平台环境配置，指定环境名称
+
+# 指定环境名称创建
+conda env create -f environment.yml -n new_env_name
+
+# 跨平台环境配置（兼容不同操作系统）
+conda env create -f environment_cross_platform.yml
+
+# 跨平台配置 + 指定环境名称
+conda env create -f environment_cross_platform.yml -n new_env_name
 ```
+
+### 启动服务
+`python app.py`
+
+> 若出现端口冲突，可修改 app.py 中的 port 参数调整端口，测试用例中的请求地址需同步更新。
 
 ### 接口测试用例
 
@@ -52,7 +70,13 @@ url: `http://localhost:8000/explain_risk`
 }
 ```
 
-输出
+**接口输出示例**
+
+`multi_dimensional_structure`：包含原始特征、分步计算过程、中间结果及最终风险指标，清晰展示规则运算逻辑；
+
+`semantic_description`：用自然语言解释风险判定依据、潜在影响及处理建议；
+
+`summary`：风险结果摘要，快速呈现核心结论。
 ```json
 {
   "multi_dimensional_structure": {
