@@ -1,5 +1,13 @@
 # 海关算子
 
+### 环境配置
+```bash
+conda env create -f environment.yml
+conda env create -f environment.yml -n new_env_name # 指定环境名称
+conda env create -f environment_cross_platform.yml # 跨平台环境配置
+conda env create -f environment_cross_platform.yml -n new_env_name # 跨平台环境配置，指定环境名称
+```
+
 ### 接口测试用例
 
 1. 方法一：curl测试
