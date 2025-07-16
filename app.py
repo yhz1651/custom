@@ -1,7 +1,7 @@
 import requests
 from flask import Flask, request, jsonify, Response
 import json
-from RiskIndicatorDescription import *
+from riskIndicatorDescription import *
 app = Flask(__name__)
 # 全局配置：JSON序列化时保留中文
 app.config['JSON_AS_ASCII'] = False

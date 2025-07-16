@@ -23,6 +23,9 @@ def generate_risk_indicator(risk_features, rules):
         
         if operator_name in ['subset_operator']:
             result = operator(*features)
+        elif operator_name in ['cmp_operator']:
+            # cmp_operator 不需要阈值参数
+            result = operator(*features)
         elif operator_name in ['weighted_avg_operator']:
             # 假设第一个特征是权重列表，其余是值列表
             weights = features[0]
@@ -88,7 +91,7 @@ def get_operator_description(operator_name, feature_names, threshold, result):
     operator_descriptions = {
         "diff_operator": f"计算{feature_names[0]}与{feature_names[1]}的差值，判断是否大于等于阈值{threshold}",
         "ratio_operator": f"计算{feature_names[0]}与{feature_names[1]}的比值，判断是否大于等于阈值{threshold}",
-        "cmp_operator": f"比较{feature_names[0]}与{feature_names[1]}的大小",
+        "cmp_operator": f"比较{feature_names[0]}与{feature_names[1]}的大小，判断{feature_names[0]}是否大于等于{feature_names[1]}",
         "avg_operator": f"计算{feature_names[0]}与{feature_names[1]}的平均值，判断是否大于等于阈值{threshold}",
         "weighted_avg_operator": f"计算加权平均值，判断是否大于等于阈值{threshold}",
         "subset_operator": f"判断{feature_names[0]}是否为{feature_names[1]}的子集"
