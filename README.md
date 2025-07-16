@@ -7,6 +7,7 @@ By [@yhz1651](https://github.com/yhz1651)
 该工具可将分散的单维数据转化为可解释的风险判断依据，清晰呈现风险触发的计算链路与逻辑关系，为海关等场景的风险核查提供直观、可追溯的决策支持。
 
 ## 环境配置
+
 ```bash
 # 创建默认环境
 conda env create -f env/environment.yml
@@ -22,6 +23,7 @@ conda env create -f env/environment_cross_platform.yml -n new_env_name
 ```
 
 ## 启动服务
+
 `python app.py`
 
 > 若出现端口冲突，可修改 app.py 中的 port 参数调整端口，测试用例中的请求地址需同步更新。
@@ -36,15 +38,10 @@ curl -X POST http://localhost:8000/explain_risk \
   -H "Content-Type: application/json" \
   -d '{
     "risk_features": {
-      "申报重量": 55,
-      "限重": 50,
-      "申报价格": 100,
-      "参考价格": 80
+      ……
     },
     "rules": [
-      ["diff_operator", ["申报重量", "限重"], 0],
-      ["ratio_operator", ["申报价格", "参考价格"], 1.2],
-      ["and_operator", [], null]
+      ……
     ]
   }'
 ```
@@ -58,15 +55,10 @@ url: `http://localhost:8000/explain_risk`
 ```json
 {
   "risk_features": {
-    "申报重量": 55,
-    "限重": 50,
-    "申报价格": 100,
-    "参考价格": 80
+    ……
   },
   "rules": [
-    ["diff_operator", ["申报重量", "限重"], 0],
-    ["ratio_operator", ["申报价格", "参考价格"], 1.2],
-    ["and_operator", [], null]
+    ……
   ]
 }
 ```
