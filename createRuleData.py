@@ -1,45 +1,262 @@
 import csv
 import random
 import time
+import json
 from datetime import datetime, timedelta
 
-# 定义海关相关的属性字段
-customs_attributes = [
-    "申报重量", "限重", "申报价格", "参考价格", "货物类型",
-    "原产国", "目的国", "贸易方式", "运输方式", "企业信用等级",
-    "历史违规次数", "关税税率", "增值税率", "消费税率", "检疫要求",
-    "许可证要求", "包装类型", "危险品等级", "货物价值", "运输温度"
+# 分类定义海关相关的属性字段
+numeric_attributes = [
+    "申报重量", "限重", "申报价格", "参考价格",
+    "关税税率", "增值税率", "消费税率", "货物价值",
+    "运输温度", "历史违规次数", "企业信用等级"
 ]
 
-# 定义属性算子（使用英文表示）
-attribute_operators = [
-    "comparison_operator", "difference_operator", "multiplication_operator",
-    "ratio_operator", "differential_ratio_operator", "subset_judgment_operator",
-    "mean_operator", "variance_operator", "euclidean_distance_operator",
-    "weighted_combination_operator", "cross_deviation_operator",
-    "multivariate_variance_operator", "3d_euclidean_operator",
-    "joint_probability_operator", "multidimensional_similarity_operator"
+categorical_attributes = [
+    "货物类型", "原产国", "目的国", "贸易方式", "运输方式",
+    "检疫要求", "许可证要求", "包装类型", "危险品等级"
 ]
 
-# 定义二元异常指标算子（使用英文表示）
-binary_anomaly_operators = [
-    "logical_and_operator", "logical_or_operator", "logical_xor_operator",
-    "logical_implication_operator", "logical_nand_operator",
-    "logical_nor_operator", "logical_equivalence_operator"
-]
+# 所有属性
+customs_attributes = numeric_attributes + categorical_attributes
 
-# 定义三元异常指标算子（使用英文表示）
-ternary_anomaly_operators = [
-    "ternary_logical_and_operator", "ternary_logical_or_operator",
-    "ternary_logical_xor_operator", "ternary_logical_implication_operator"
-]
+# 定义算子及其所需的参数数量和属性类型
+operators_info = {
+    "diff_operator": {
+        "name": "差值算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算两个特征值的差值"
+    },
+    "ratio_operator": {
+        "name": "比值算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算两个特征值的比值"
+    },
+    "comparison_operator": {
+        "name": "对比算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "比较两个特征值的大小关系"
+    },
+    "multiplication_operator": {
+        "name": "乘法算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算两个特征值的乘积"
+    },
+    "differential_ratio_operator": {
+        "name": "差分比率算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算差分值相对于基准值的比率"
+    },
+    "subset_judgment_operator": {
+        "name": "子集判断算子",
+        "param_count": 2,
+        "attribute_types": ["categorical", "categorical"],  # 需要两个分类属性
+        "description": "判断一个集合是否为另一个集合的子集"
+    },
+    "mean_operator": {
+        "name": "均值算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算两个特征值的平均值"
+    },
+    "variance_operator": {
+        "name": "方差算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算两个特征值的方差"
+    },
+    "euclidean_distance_operator": {
+        "name": "欧几里得距离算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算两点间的欧几里得距离"
+    },
+    "weighted_combination_operator": {
+        "name": "加权组合算子",
+        "param_count": 3,
+        "attribute_types": ["numeric", "numeric", "numeric"],  # 需要三个数值属性
+        "description": "计算多个特征值的加权综合值"
+    },
+    "cross_deviation_operator": {
+        "name": "交叉偏差算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算多个特征值的交叉偏差"
+    },
+    "multivariate_variance_operator": {
+        "name": "多变量方差算子",
+        "param_count": 3,
+        "attribute_types": ["numeric", "numeric", "numeric"],  # 需要三个数值属性
+        "description": "计算多个特征值之间的方差"
+    },
+    "3d_euclidean_operator": {
+        "name": "三维欧几里得算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算三维空间中点之间的欧几里得距离"
+    },
+    "joint_probability_operator": {
+        "name": "联合概率算子",
+        "param_count": 2,
+        "attribute_types": ["categorical", "categorical"],  # 需要两个分类属性
+        "description": "计算多个事件或特征的联合发生概率"
+    },
+    "multidimensional_similarity_operator": {
+        "name": "多维相似性算子",
+        "param_count": 2,
+        "attribute_types": ["numeric", "numeric"],  # 需要两个数值属性
+        "description": "计算三维空间的余弦相似度"
+    },
+    "logical_and_operator": {
+        "name": "逻辑与运算算子",
+        "param_count": 0,  # 逻辑运算符不直接使用属性
+        "attribute_types": [],
+        "description": "对两个特征值进行逻辑与运算"
+    },
+    "logical_or_operator": {
+        "name": "逻辑或运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对两个特征值进行逻辑或运算"
+    },
+    "logical_xor_operator": {
+        "name": "逻辑异或运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对两个特征值进行逻辑异或运算"
+    },
+    "logical_implication_operator": {
+        "name": "逻辑蕴含运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对两个特征值进行逻辑蕴含运算"
+    },
+    "logical_nand_operator": {
+        "name": "逻辑与非运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对两个特征值进行逻辑与非运算"
+    },
+    "logical_nor_operator": {
+        "name": "逻辑或非运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对两个特征值进行逻辑或非运算"
+    },
+    "logical_equivalence_operator": {
+        "name": "逻辑等价运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对两个特征值进行逻辑等价运算"
+    },
+    "ternary_logical_and_operator": {
+        "name": "三元逻辑与运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对三个特征值进行逻辑与运算"
+    },
+    "ternary_logical_or_operator": {
+        "name": "三元逻辑或运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对三个特征值进行逻辑或运算"
+    },
+    "ternary_logical_xor_operator": {
+        "name": "三元逻辑异或运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对三个特征值进行逻辑异或运算"
+    },
+    "ternary_logical_implication_operator": {
+        "name": "三元逻辑蕴含运算算子",
+        "param_count": 0,
+        "attribute_types": [],
+        "description": "对三个特征值进行逻辑蕴含运算"
+    }
+}
 
 # 规则类型和状态
 rule_types = ["重量风险", "价格风险", "品类风险", "产地风险", "企业信用风险", "税收风险", "检疫风险"]
 rule_statuses = ["启用"]
-# rule_statuses = ["启用", "禁用", "测试中", "待审核"]
 operators = ["管理员"]
-# operators = ["海关管理员", "系统自动", "风险分析师", "审计员", "监管官员"]
+
+
+# 根据属性类型选择属性
+def select_attributes_by_type(attribute_types):
+    selected_attributes = []
+    for attr_type in attribute_types:
+        if attr_type == "numeric":
+            selected_attributes.append(random.choice(numeric_attributes))
+        elif attr_type == "categorical":
+            selected_attributes.append(random.choice(categorical_attributes))
+    return selected_attributes
+
+
+# 生成分层规则结构
+def generate_rule_structure(rule_type):
+    # 根据规则类型确定基础算子
+    if rule_type == "重量风险":
+        base_operators = ["diff_operator", "comparison_operator", "ratio_operator"]
+    elif rule_type == "价格风险":
+        base_operators = ["ratio_operator", "comparison_operator", "multiplication_operator"]
+    elif rule_type == "品类风险":
+        base_operators = ["subset_judgment_operator", "joint_probability_operator"]
+    elif rule_type == "产地风险":
+        base_operators = ["subset_judgment_operator", "joint_probability_operator"]
+    elif rule_type == "企业信用风险":
+        base_operators = ["comparison_operator", "mean_operator", "variance_operator"]
+    elif rule_type == "税收风险":
+        base_operators = ["ratio_operator", "comparison_operator", "multiplication_operator"]
+    else:  # 检疫风险
+        base_operators = ["subset_judgment_operator", "joint_probability_operator"]
+
+    # 确定规则复杂度 (1-3个基础算子 + 0-1个逻辑算子)
+    num_base_operators = random.randint(1, 3)
+    use_logical_operator = random.random() < 0.5  # 50%的概率使用逻辑算子
+
+    # 选择基础算子
+    selected_operators = random.sample(base_operators, min(num_base_operators, len(base_operators)))
+
+    # 构建规则结构
+    rule_structure = []
+
+    # 添加基础算子
+    for op in selected_operators:
+        op_info = operators_info[op]
+        param_count = op_info["param_count"]
+        attribute_types = op_info["attribute_types"]
+
+        # 选择适当类型的属性
+        if param_count > 0 and attribute_types:
+            attributes = select_attributes_by_type(attribute_types)
+        else:
+            attributes = []
+
+        # 设置阈值
+        if "diff" in op or "comparison" in op:
+            threshold = round(random.uniform(-100, 100), 2)
+        elif "ratio" in op:
+            threshold = round(random.uniform(0.5, 2.0), 2)
+        elif "subset" in op or "joint" in op:
+            threshold = random.choice([0, 1])
+        else:
+            threshold = round(random.uniform(0, 10), 2)
+
+        rule_structure.append([op, attributes, threshold])
+
+    # 添加逻辑算子 (如果需要)
+    if use_logical_operator and len(selected_operators) > 1:
+        logical_operators = [k for k in operators_info.keys() if
+                             "logical" in k and operators_info[k]["param_count"] == 0]
+        if logical_operators:
+            logical_op = random.choice(logical_operators)
+            rule_structure.append([logical_op, [], None])
+
+    return rule_structure
 
 
 # 生成规则数据
@@ -47,7 +264,7 @@ def generate_rules_data(num_records, output_file):
     # CSV文件头
     fieldnames = [
         "rule_id", "rule_name", "rule_description", "rule_type", "rule_status",
-        "related_attributes", "related_operators", "threshold", "calculation_method",
+        "rule_structure", "calculation_method",
         "created_time", "updated_time", "operator"
     ]
 
@@ -87,37 +304,12 @@ def generate_rules_data(num_records, output_file):
             # 规则状态
             rule_status = random.choice(rule_statuses)
 
-            # 相关属性（2-4个）
-            num_attrs = random.randint(2, 4)
-            related_attributes = random.sample(customs_attributes, num_attrs)
-
-            # 相关算子（1-3个）
-            num_ops = random.randint(1, 3)
-            # 80%的概率使用属性算子，20%的概率使用异常指标算子
-            if random.random() < 0.8:
-                related_operators = random.sample(attribute_operators, num_ops)
-            else:
-                # 从二元和三元异常指标算子中随机选择
-                if random.random() < 0.7:
-                    related_operators = random.sample(binary_anomaly_operators, num_ops)
-                else:
-                    related_operators = random.sample(ternary_anomaly_operators, num_ops)
-
-            # 阈值（根据算子类型生成不同的阈值）
-            threshold = []
-            for op in related_operators:
-                if "comparison" in op or "difference" in op or "multiplication" in op:
-                    threshold.append(round(random.uniform(-100, 100), 2))
-                elif "ratio" in op or "differential" in op:
-                    threshold.append(round(random.uniform(0.5, 2.0), 2))
-                elif "subset" in op or "logical" in op:
-                    threshold.append(random.choice([0, 1]))
-                else:  # 其他算子
-                    threshold.append(round(random.uniform(0, 10), 2))
+            # 生成规则结构
+            rule_structure = generate_rule_structure(rule_type)
 
             # 计算方法描述
-            calculation_method = f"使用{', '.join(related_operators)}对{', '.join(related_attributes)}进行计算，"
-            calculation_method += f"阈值设置为{threshold}，用于检测{rule_type.lower()}。"
+            calculation_method = f"使用分层规则结构进行{rule_type.lower()}检测，"
+            calculation_method += f"包含{len(rule_structure)}个计算步骤。"
 
             # 时间戳
             created_time = base_time + random.randint(0, 365 * 24 * 60 * 60)
@@ -133,9 +325,7 @@ def generate_rules_data(num_records, output_file):
                 "rule_description": rule_description,
                 "rule_type": rule_type,
                 "rule_status": rule_status,
-                "related_attributes": "|".join(related_attributes),
-                "related_operators": "|".join(related_operators),
-                "threshold": "|".join(map(str, threshold)),
+                "rule_structure": json.dumps(rule_structure, ensure_ascii=False),
                 "calculation_method": calculation_method,
                 "created_time": created_time,
                 "updated_time": updated_time,
